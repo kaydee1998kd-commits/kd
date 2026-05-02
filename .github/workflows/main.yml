@@ -14,18 +14,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24 # Updated to Node 24 to remove that warning
+          node-version: 24
 
       - name: Prepare Web Assets
         run: |
           mkdir -p www
-          # This command ensures the build stops if these files are missing
-          cp index.html sw.js www/ || { echo "Error: index.html or sw.js not found in root!"; exit 1; }
+          # Only copies index.html; if you have sw.js, add it back to this line
+          cp index.html www/ || { echo "Error: index.html not found!"; exit 1; }
 
       - name: Install Capacitor
         run: |
           npm init -y
-          npm install @capacitor/core @capacitor/cli
+          # This line fixes the "Could not find the ios platform" error
+          npm install @capacitor/core @capacitor/cli @capacitor/ios
           npx cap init MicLink com.miclink.app --web-dir=www
 
       - name: Add iOS Platform
