@@ -1,41 +1,63 @@
-name: Build Flashlight IPA
+name: Build iOS IPA
 
 on:
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-15
-
+    runs-on: macos-latest
+    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set Xcode version
-        run: sudo xcode-select -s /Applications/Xcode_16.app
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24 # Updated to Node 24 to remove that warning
 
-      - name: Build IPA (unsigned)
+      - name: Prepare Web Assets
         run: |
-          mkdir -p build/Payload
+          mkdir -p www
+          # This command ensures the build stops if these files are missing
+          cp index.html sw.js www/ || { echo "Error: index.html or sw.js not found in root!"; exit 1; }
 
-          xcodebuild build \
-            -project FlashlightApp.xcodeproj \
-            -scheme FlashlightApp \
+      - name: Install Capacitor
+        run: |
+          npm init -y
+          npm install @capacitor/core @capacitor/cli
+          npx cap init MicLink com.miclink.app --web-dir=www
+
+      - name: Add iOS Platform
+        run: |
+          npx cap add ios
+          npx cap sync ios
+
+      - name: Update Info.plist
+        run: |
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" ios/App/App/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Need mic for audio'" ios/App/App/Info.plist
+
+      - name: Build Unsigned IPA
+        run: |
+          mkdir -p Payload
+          
+          xcodebuild -workspace ios/App/App.xcworkspace \
+            -scheme App \
             -configuration Release \
             -sdk iphoneos \
-            -derivedDataPath build/DerivedData \
+            -archivePath build/App.xcarchive \
+            archive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            PRODUCT_BUNDLE_IDENTIFIER="com.kaydee1998.FlashlightApp"
+            CODE_SIGNING_ALLOWED=NO
+          
+          cp -r build/App.xcarchive/Products/Applications/App.app Payload/
+          zip -r MicLink.ipa Payload
 
-          APP_PATH=$(find build/DerivedData -name "*.app" -type d | head -1)
-          cp -r "$APP_PATH" build/Payload/
-          cd build && zip -r FlashlightApp.ipa Payload/
-
-      - name: Upload IPA
+      - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FlashlightApp
-          path: build/FlashlightApp.ipa
-          retention-days: 30
+          name: MicLink-Unsigned
+          path: MicLink.ipa
