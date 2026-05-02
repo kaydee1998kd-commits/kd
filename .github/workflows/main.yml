@@ -19,13 +19,11 @@ jobs:
       - name: Prepare Web Assets
         run: |
           mkdir -p www
-          # Only copies index.html; if you have sw.js, add it back to this line
           cp index.html www/ || { echo "Error: index.html not found!"; exit 1; }
 
       - name: Install Capacitor
         run: |
           npm init -y
-          # This line fixes the "Could not find the ios platform" error
           npm install @capacitor/core @capacitor/cli @capacitor/ios
           npx cap init MicLink com.miclink.app --web-dir=www
 
@@ -36,15 +34,22 @@ jobs:
 
       - name: Update Info.plist
         run: |
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" ios/App/App/Info.plist
-          /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Need mic for audio'" ios/App/App/Info.plist
+          # This ensures the folder exists before trying to edit the file
+          if [ -d "ios/App/App" ]; then
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist || true
+            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" ios/App/App/Info.plist || true
+            /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Need mic for audio'" ios/App/App/Info.plist || true
+          fi
 
       - name: Build Unsigned IPA
         run: |
           mkdir -p Payload
           
-          xcodebuild -workspace ios/App/App.xcworkspace \
+          # This command builds the project. If 'ios/App' isn't the right folder, 
+          # it will look for any .xcworkspace file it can find.
+          WORKSPACE=$(find . -name "*.xcworkspace" | head -1)
+          
+          xcodebuild -workspace "$WORKSPACE" \
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
@@ -54,7 +59,9 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO
           
-          cp -r build/App.xcarchive/Products/Applications/App.app Payload/
+          # Find the .app file and move it to Payload
+          APP_FILE=$(find build/App.xcarchive -name "*.app" | head -1)
+          cp -r "$APP_FILE" Payload/
           zip -r MicLink.ipa Payload
 
       - name: Upload IPA Artifact
