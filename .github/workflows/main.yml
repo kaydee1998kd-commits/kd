@@ -24,6 +24,12 @@ jobs:
           cd BubbleTranslate-iOS
           xcodegen generate
 
+      - name: Remove broken LaunchScreen storyboard
+        run: |
+          cd BubbleTranslate-iOS
+          rm -f BubbleTranslate/Resources/LaunchScreen.storyboard
+          /usr/libexec/PlistBuddy -c "Delete :UILaunchStoryboardName" BubbleTranslate/Resources/Info.plist 2>/dev/null || true
+
       - name: Build Archive (No Signing)
         run: |
           cd BubbleTranslate-iOS
@@ -36,4 +42,24 @@ jobs:
             -archivePath build/BubbleTranslate.xcarchive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=N
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            ONLY_ACTIVE_ARCH=NO \
+            ENABLE_BITCODE=NO
+
+      - name: Create IPA (Manual)
+        run: |
+          cd BubbleTranslate-iOS
+          mkdir -p build/Payload
+          cp -r build/BubbleTranslate.xcarchive/Products/Applications/BubbleTranslate.app build/Payload/
+          brew install ldid
+          ldid -S build/Payload/BubbleTranslate.app/BubbleTranslate
+          cd build
+          zip -r BubbleTranslate.ipa Payload/
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BubbleTranslate-IPA
+          path: BubbleTranslate-iOS/build/BubbleTranslate.ipa
+          retention-days: 30
