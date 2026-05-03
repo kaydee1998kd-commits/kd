@@ -1,71 +1,56 @@
-name: Build iOS IPA
+name: Build IPA
 
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: macos-latest
-    
+    name: Build Bubble Translate IPA
+    runs-on: macos-14
+
     steps:
-      - name: Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 24
+      - name: 📦 Install XcodeGen
+        run: brew install xcodegen
 
-      - name: Prepare Web Assets
-        run: |
-          mkdir -p www
-          cp index.html www/ || { echo "Error: index.html not found!"; exit 1; }
+      - name: 🔧 Generate Xcode Project
+        run: xcodegen generate
 
-      - name: Install Capacitor
+      - name: 🔨 Build Archive (No Signing)
         run: |
-          npm init -y
-          npm install @capacitor/core @capacitor/cli @capacitor/ios
-          npx cap init MicLink com.miclink.app --web-dir=www
-
-      - name: Add iOS Platform
-        run: |
-          npx cap add ios
-          npx cap sync ios
-
-      - name: Update Info.plist
-        run: |
-          # This ensures the folder exists before trying to edit the file
-          if [ -d "ios/App/App" ]; then
-            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes array" ios/App/App/Info.plist || true
-            /usr/libexec/PlistBuddy -c "Add :UIBackgroundModes:0 string audio" ios/App/App/Info.plist || true
-            /usr/libexec/PlistBuddy -c "Add :NSMicrophoneUsageDescription string 'Need mic for audio'" ios/App/App/Info.plist || true
-          fi
-
-      - name: Build Unsigned IPA
-        run: |
-          mkdir -p Payload
-          
-          # This command builds the project. If 'ios/App' isn't the right folder, 
-          # it will look for any .xcworkspace file it can find.
-          WORKSPACE=$(find . -name "*.xcworkspace" | head -1)
-          
-          xcodebuild -workspace "$WORKSPACE" \
-            -scheme App \
+          xcodebuild archive \
+            -project BubbleTranslate.xcodeproj \
+            -scheme BubbleTranslate \
             -configuration Release \
             -sdk iphoneos \
-            -archivePath build/App.xcarchive \
-            archive \
+            -arch arm64 \
+            -archivePath build/BubbleTranslate.xcarchive \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
-          
-          # Find the .app file and move it to Payload
-          APP_FILE=$(find build/App.xcarchive -name "*.app" | head -1)
-          cp -r "$APP_FILE" Payload/
-          zip -r MicLink.ipa Payload
+            CODE_SIGNING_ALLOWED=NO \
+            DEVELOPMENT_TEAM="" \
+            ONLY_ACTIVE_ARCH=NO \
+            ENABLE_BITCODE=NO
 
-      - name: Upload IPA Artifact
+      - name: 📱 Create IPA (Manual)
+        run: |
+          mkdir -p build/Payload
+          cp -r build/BubbleTranslate.xcarchive/Products/Applications/BubbleTranslate.app build/Payload/
+          brew install ldid
+          ldid -S build/Payload/BubbleTranslate.app/BubbleTranslate
+          cd build
+          zip -r BubbleTranslate.ipa Payload/
+          cd ..
+
+      - name: 📤 Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MicLink-Unsigned
-          path: MicLink.ipa
+          name: BubbleTranslate-IPA
+          path: build/BubbleTranslate.ipa
+          retention-days: 30
