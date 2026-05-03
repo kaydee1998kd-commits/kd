@@ -16,6 +16,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Remove broken LaunchScreen storyboard
+        run: rm -f BubbleTranslate-iOS/BubbleTranslate/Resources/LaunchScreen.storyboard
+
       - name: Install XcodeGen
         run: brew install xcodegen
 
@@ -23,12 +26,6 @@ jobs:
         run: |
           cd BubbleTranslate-iOS
           xcodegen generate
-
-      - name: Remove broken LaunchScreen storyboard
-        run: |
-          cd BubbleTranslate-iOS
-          rm -f BubbleTranslate/Resources/LaunchScreen.storyboard
-          /usr/libexec/PlistBuddy -c "Delete :UILaunchStoryboardName" BubbleTranslate/Resources/Info.plist 2>/dev/null || true
 
       - name: Build Archive (No Signing)
         run: |
