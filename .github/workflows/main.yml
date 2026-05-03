@@ -44,13 +44,18 @@ jobs:
             ONLY_ACTIVE_ARCH=NO \
             ENABLE_BITCODE=NO
 
+      - name: List app bundle contents
+        run: |
+          echo "=== App bundle contents ==="
+          ls -la BubbleTranslate-iOS/build/BubbleTranslate.xcarchive/Products/Applications/BubbleTranslate.app/
+          echo "=== Binary size ==="
+          du -sh BubbleTranslate-iOS/build/BubbleTranslate.xcarchive/Products/Applications/BubbleTranslate.app/BubbleTranslate
+
       - name: Create IPA (Manual)
         run: |
           cd BubbleTranslate-iOS
           mkdir -p build/Payload
           cp -r build/BubbleTranslate.xcarchive/Products/Applications/BubbleTranslate.app build/Payload/
-          brew install ldid
-          ldid -S build/Payload/BubbleTranslate.app/BubbleTranslate
           cd build
           zip -r BubbleTranslate.ipa Payload/
 
