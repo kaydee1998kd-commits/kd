@@ -1,0 +1,50 @@
+name: BubbleTranslate
+options:
+  bundleIdPrefix: com.bubbletranslate
+  deploymentTarget:
+    iOS: "15.0"
+  xcodeVersion: "14.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    IPHONEOS_DEPLOYMENT_TARGET: "15.0"
+
+targets:
+  BubbleTranslate:
+    type: application
+    platform: iOS
+    sources:
+      - path: BubbleTranslate
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        INFOPLIST_FILE: BubbleTranslate/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.bubbletranslate.app
+        PRODUCT_NAME: BubbleTranslate
+        CODE_SIGN_IDENTITY: ""
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
+        DEVELOPMENT_TEAM: ""
+        ENABLE_BITCODE: NO
+        SWIFT_OPTIMIZATION_LEVEL: "-Onone"
+        GCC_PREPROCESSOR_DEFINITIONS:
+          - DEBUG=1
+          - "$(inherited)"
+    entitlements:
+      path: BubbleTranslate/BubbleTranslate.entitlements
+      properties:
+        com.apple.developer.networking.wifi-info: true
+
+schemes:
+  BubbleTranslate:
+    build:
+      targets:
+        BubbleTranslate: all
+    run:
+      config: Debug
+    archive:
+      config: Release
