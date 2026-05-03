@@ -1,4 +1,5 @@
 import UIKit
+import AVFoundation
 
 // MARK: - Translation Panel View
 
@@ -35,7 +36,6 @@ class TranslationPanelView: UIView {
     }
     
     private func setupView() {
-        // Panel styling
         backgroundColor = .panelBackground
         layer.cornerRadius = 20
         layer.borderColor = UIColor.panelBorder.cgColor
@@ -43,13 +43,8 @@ class TranslationPanelView: UIView {
         addShadow(opacity: 0.5, radius: 20)
         clipsToBounds = true
         
-        // Header
         setupHeader()
-        
-        // Content
         setupContent()
-        
-        // Loading
         setupLoading()
     }
     
@@ -69,14 +64,12 @@ class TranslationPanelView: UIView {
     }
     
     private func setupContent() {
-        // Original section label
         originalLabel.text = "DETECTED TEXT"
         originalLabel.font = UIFont.systemFont(ofSize: 10, weight: .bold)
         originalLabel.textColor = .panelTextMuted
         originalLabel.letterSpacing = 1.0
         addSubview(originalLabel)
         
-        // Original text view
         originalTextView.isEditable = false
         originalTextView.isScrollEnabled = true
         originalTextView.backgroundColor = UIColor(white: 1, alpha: 0.05)
@@ -86,21 +79,18 @@ class TranslationPanelView: UIView {
         originalTextView.textContainerInset = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
         addSubview(originalTextView)
         
-        // Arrow
         arrowLabel.text = "↓"
         arrowLabel.font = UIFont.systemFont(ofSize: 18, weight: .bold)
         arrowLabel.textColor = .panelAccent
         arrowLabel.textAlignment = .center
         addSubview(arrowLabel)
         
-        // Translation section label
         translationLabel.text = "TRANSLATION"
         translationLabel.font = UIFont.systemFont(ofSize: 10, weight: .bold)
         translationLabel.textColor = .panelAccent
         translationLabel.letterSpacing = 1.0
         addSubview(translationLabel)
         
-        // Translation text view
         translationTextView.isEditable = false
         translationTextView.isScrollEnabled = true
         translationTextView.backgroundColor = UIColor.panelAccent.withAlphaComponent(0.1)
@@ -112,13 +102,12 @@ class TranslationPanelView: UIView {
         translationTextView.textContainerInset = UIEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
         addSubview(translationTextView)
         
-        // Action buttons
         actionStackView.axis = .horizontal
         actionStackView.spacing = 12
         actionStackView.distribution = .fillEqually
         addSubview(actionStackView)
         
-        copyButton.setTitle("📋 Copy", for: .normal)
+        copyButton.setTitle("Copy", for: .normal)
         copyButton.setTitleColor(.panelTextPrimary, for: .normal)
         copyButton.backgroundColor = UIColor(white: 1, alpha: 0.08)
         copyButton.layer.cornerRadius = 10
@@ -126,7 +115,7 @@ class TranslationPanelView: UIView {
         copyButton.addTarget(self, action: #selector(copyTranslation), for: .touchUpInside)
         actionStackView.addArrangedSubview(copyButton)
         
-        speakButton.setTitle("🔊 Speak", for: .normal)
+        speakButton.setTitle("Speak", for: .normal)
         speakButton.setTitleColor(.panelTextPrimary, for: .normal)
         speakButton.backgroundColor = UIColor(white: 1, alpha: 0.08)
         speakButton.layer.cornerRadius = 10
@@ -157,21 +146,18 @@ class TranslationPanelView: UIView {
         let contentWidth = bounds.width - padding * 2
         var yOffset: CGFloat = padding
         
-        // Header
         headerView.frame = CGRect(x: 0, y: 0, width: bounds.width, height: 44)
         languageLabel.frame = CGRect(x: padding, y: 12, width: 150, height: 20)
         closeButton.frame = CGRect(x: bounds.width - 44, y: 8, width: 36, height: 28)
         
         yOffset = 52
         
-        // Check if loading
         if loadingView.isAnimating {
             loadingView.center = CGPoint(x: bounds.midX, y: bounds.midY - 10)
             loadingLabel.frame = CGRect(x: padding, y: bounds.midY + 15, width: contentWidth, height: 20)
             return
         }
         
-        // Original section
         originalLabel.frame = CGRect(x: padding, y: yOffset, width: contentWidth, height: 16)
         yOffset += 20
         
@@ -179,11 +165,9 @@ class TranslationPanelView: UIView {
         originalTextView.frame = CGRect(x: padding, y: yOffset, width: contentWidth, height: originalHeight)
         yOffset += originalHeight + 8
         
-        // Arrow
         arrowLabel.frame = CGRect(x: padding, y: yOffset, width: contentWidth, height: 24)
         yOffset += 28
         
-        // Translation section
         translationLabel.frame = CGRect(x: padding, y: yOffset, width: contentWidth, height: 16)
         yOffset += 20
         
@@ -192,7 +176,6 @@ class TranslationPanelView: UIView {
         translationTextView.frame = CGRect(x: padding, y: yOffset, width: contentWidth, height: translationHeight)
         yOffset += translationHeight + 12
         
-        // Action buttons
         actionStackView.frame = CGRect(x: padding, y: yOffset, width: contentWidth, height: 40)
     }
     
@@ -202,8 +185,6 @@ class TranslationPanelView: UIView {
         if loading {
             loadingView.startAnimating()
             loadingLabel.isHidden = false
-            
-            // Hide content
             originalLabel.isHidden = true
             originalTextView.isHidden = true
             arrowLabel.isHidden = true
@@ -213,8 +194,6 @@ class TranslationPanelView: UIView {
         } else {
             loadingView.stopAnimating()
             loadingLabel.isHidden = true
-            
-            // Show content
             originalLabel.isHidden = false
             originalTextView.isHidden = false
             arrowLabel.isHidden = false
@@ -222,7 +201,6 @@ class TranslationPanelView: UIView {
             translationTextView.isHidden = false
             actionStackView.isHidden = false
         }
-        
         setNeedsLayout()
     }
     
@@ -241,7 +219,6 @@ class TranslationPanelView: UIView {
             translationTextView.layer.borderColor = UIColor.panelAccent.withAlphaComponent(0.3).cgColor
         }
         
-        // Adjust frame height based on content
         adjustHeight()
         setLoading(false)
     }
@@ -250,17 +227,16 @@ class TranslationPanelView: UIView {
         let padding: CGFloat = 16
         let contentWidth = bounds.width - padding * 2
         
-        // Calculate required height
         let originalSize = originalTextView.sizeThatFits(CGSize(width: contentWidth - 24, height: .greatestFiniteMagnitude))
         let translationSize = translationTextView.sizeThatFits(CGSize(width: contentWidth - 24, height: .greatestFiniteMagnitude))
         
-        var totalHeight: CGFloat = padding // top padding
-        totalHeight += 44 // header
-        totalHeight += 20 + min(originalSize.height + 20, 80) // original
-        totalHeight += 8 + 24 + 28 // arrow
-        totalHeight += 20 + min(translationSize.height + 20, 200) // translation
-        totalHeight += 12 + 40 // action buttons
-        totalHeight += padding // bottom padding
+        var totalHeight: CGFloat = padding
+        totalHeight += 44
+        totalHeight += 20 + min(originalSize.height + 20, 80)
+        totalHeight += 8 + 24 + 28
+        totalHeight += 20 + min(translationSize.height + 20, 200)
+        totalHeight += 12 + 40
+        totalHeight += padding
         
         let newHeight = max(min(totalHeight, AppConfig.translationPanelMaxHeight), 200)
         
@@ -275,12 +251,11 @@ class TranslationPanelView: UIView {
     @objc private func copyTranslation() {
         UIPasteboard.general.string = currentTranslation
         
-        // Brief visual feedback
-        copyButton.setTitle("✓ Copied!", for: .normal)
+        copyButton.setTitle("Copied!", for: .normal)
         copyButton.setTitleColor(.systemGreen, for: .normal)
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            self.copyButton.setTitle("📋 Copy", for: .normal)
+            self.copyButton.setTitle("Copy", for: .normal)
             self.copyButton.setTitleColor(.panelTextPrimary, for: .normal)
         }
     }
@@ -288,8 +263,9 @@ class TranslationPanelView: UIView {
     @objc private func speakTranslation() {
         let synth = AVSpeechSynthesizer()
         let utterance = AVSpeechUtterance(string: currentTranslation)
-        utterance.language = "en-US"
-        utterance.rate = 0.9
+        // Use AVSpeechSynthesisVoice instead of deprecated .language property
+        utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+        utterance.rate = 0.5
         synth.speak(utterance)
     }
 }
@@ -316,5 +292,3 @@ private extension UILabel {
         }
     }
 }
-
-import AVFoundation

@@ -8,46 +8,33 @@ import CoreImage
 /// Works on iOS 15+ with VNRecognizeTextRequest supporting Chinese.
 class OCRService {
     
-    /// Capture the current screen content
+    /// Capture the current screen content using iOS-compatible method
     func captureScreen(completion: @escaping (UIImage?) -> Void) {
-        DispatchQueue.global(qos: .userInitiated).async {
-            // Method 1: Use CGWindowListCreateImage to capture the screen
-            // This works on jailbroken iOS to capture ALL app content
-            let screenRect = CGRect(
-                x: 0,
-                y: 0,
-                width: UIScreen.main.bounds.width * UIScreen.main.scale,
-                height: UIScreen.main.bounds.height * UIScreen.main.scale
-            )
-            
-            guard let cgImage = CGWindowListCreateImage(
-                screenRect,
-                .optionOnScreenBelowWindow,
-                kCGNullWindowID,
-                [.bestResolution]
-            ) else {
-                // Fallback: capture the key window
-                DispatchQueue.main.async {
-                    let screenshot = self.captureKeyWindow()
-                    completion(screenshot)
-                }
-                return
-            }
-            
-            let image = UIImage(cgImage: cgImage, scale: UIScreen.main.scale, orientation: .up)
-            completion(image)
+        DispatchQueue.main.async {
+            let screenshot = self.captureKeyWindow()
+            completion(screenshot)
         }
     }
     
-    /// Fallback: capture the key window screenshot
+    /// Capture the key window screenshot (iOS-compatible)
     private func captureKeyWindow() -> UIImage? {
-        guard let keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow }) else {
-            return nil
+        // iOS 15+ compatible way to find the key window
+        let keyWindow: UIWindow?
+        if #available(iOS 15.0, *) {
+            keyWindow = UIApplication.shared
+                .connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+                .first(where: { $0.isKeyWindow })
+        } else {
+            keyWindow = UIApplication.shared.windows.first(where: { $0.isKeyWindow })
         }
         
-        let renderer = UIGraphicsImageRenderer(bounds: keyWindow.bounds)
+        guard let window = keyWindow else { return nil }
+        
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
         return renderer.image { context in
-            keyWindow.layer.render(in: context.cgContext)
+            window.layer.render(in: context.cgContext)
         }
     }
     
@@ -70,14 +57,11 @@ class OCRService {
                 return
             }
             
-            // Extract recognized text, preferring Chinese
             var recognizedLines: [String] = []
             
             for observation in observations {
-                // Get the top candidate
                 if let candidate = observation.topCandidates(1).first {
                     let text = candidate.string
-                    // Only include lines that contain Chinese or could be relevant
                     if text.containsChinese || self.looksLikeRelevantText(text) {
                         recognizedLines.append(text)
                     }
@@ -88,13 +72,11 @@ class OCRService {
             completion(fullText.isEmpty ? nil : fullText)
         }
         
-        // Configure for Chinese text recognition
         request.recognitionLevel = .accurate
         request.recognitionLanguages = ["zh-Hans", "zh-Hant", "en-US"]
         request.usesLanguageCorrection = true
-        request.minimumTextHeight = 0.02 // Detect smaller text
+        request.minimumTextHeight = 0.02
         
-        // Perform the request
         DispatchQueue.global(qos: .userInitiated).async {
             do {
                 let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
@@ -108,11 +90,9 @@ class OCRService {
     
     /// Check if text looks relevant (prices, product names, etc.)
     private func looksLikeRelevantText(_ text: String) -> Bool {
-        // Include lines with numbers, prices, common keywords
         let hasNumbers = text.range(of: "\\d", options: .regularExpression) != nil
         let hasPrice = text.contains("¥") || text.contains("￥") || text.contains("$")
         let isLongEnough = text.count >= 2
-        
         return (hasNumbers || hasPrice) && isLongEnough
     }
 }
