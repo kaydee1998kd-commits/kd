@@ -1,29 +1,11 @@
-name: Build IPA
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  workflow_dispatch:
-
-jobs:
-  build:
-    name: Build Bubble Translate IPA
-    runs-on: macos-14
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📦 Install XcodeGen
-        run: brew install xcodegen
-
-      - name: 🔧 Generate Xcode Project
-        run: xcodegen generate
+- name: 🔧 Generate Xcode Project
+        run: |
+          cd BubbleTranslate-iOS
+          xcodegen generate
 
       - name: 🔨 Build Archive (No Signing)
         run: |
+          cd BubbleTranslate-iOS
           xcodebuild archive \
             -project BubbleTranslate.xcodeproj \
             -scheme BubbleTranslate \
@@ -40,17 +22,17 @@ jobs:
 
       - name: 📱 Create IPA (Manual)
         run: |
+          cd BubbleTranslate-iOS
           mkdir -p build/Payload
           cp -r build/BubbleTranslate.xcarchive/Products/Applications/BubbleTranslate.app build/Payload/
           brew install ldid
           ldid -S build/Payload/BubbleTranslate.app/BubbleTranslate
           cd build
           zip -r BubbleTranslate.ipa Payload/
-          cd ..
 
       - name: 📤 Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
           name: BubbleTranslate-IPA
-          path: build/BubbleTranslate.ipa
+          path: BubbleTranslate-iOS/build/BubbleTranslate.ipa
           retention-days: 30
